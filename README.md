@@ -17,7 +17,7 @@ This is Web Crawler that identifies and analyzes potential phishing websites tar
 
 1. Clone the repository:
 ```bash
-git clon https://github.com/param-punjab/web-crawler
+git clone https://github.com/param-punjab/web-crawler
 cd web-crawler 
 ```
 
