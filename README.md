@@ -1,8 +1,8 @@
-# Phishing Domain Detection System
+# Web Crawler
 
 ## Overview
 
-This is an advanced Phishing Domain Detection System that identifies and analyzes potential phishing websites targeting a specified domain. The system uses multiple techniques including Certificate Transparency logs, DNS analysis, content similarity checks, and machine learning to detect suspicious domains.
+This is Web Crawler that identifies and analyzes potential phishing websites targeting a specified domain. The system uses multiple techniques including Certificate Transparency logs, DNS analysis, content similarity checks, and machine learning to detect suspicious domains.
 
 ## Features
 
