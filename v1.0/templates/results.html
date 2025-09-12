@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - Phishing Domain Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --dark: #1e1e2c;
+            --light: #f8f9fa;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .risk-low { 
+            background-color: rgba(76, 201, 240, 0.15);
+            border-left: 4px solid #4cc9f0;
+        }
+        
+        .risk-medium { 
+            background-color: rgba(255, 193, 7, 0.15);
+            border-left: 4px solid #ffc107;
+        }
+        
+        .risk-high { 
+            background-color: rgba(220, 53, 69, 0.15);
+            border-left: 4px solid #dc3545;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        
+        .domain-card {
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .domain-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .status-processing {
+            background-color: rgba(13, 110, 253, 0.15);
+            color: #0d6efd;
+        }
+        
+        .status-completed {
+            background-color: rgba(25, 135, 84, 0.15);
+            color: #198754;
+        }
+        
+        .status-error {
+            background-color: rgba(220, 53, 69, 0.15);
+            color: #dc3545;
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-shield-alt me-2"></i>Phishing Detector
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="loading-section" class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h3>Initializing Analysis</h3>
+            <p class="text-muted">Please wait while we prepare your analysis</p>
+        </div>
+
+        <div id="results-section" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Analysis Results</h1>
+                <a href="/" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>New Analysis
+                </a>
+            </div>
+            
+            <div class="card info-card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="card-title">Analysis Information</h5>
+                            <p class="card-text">
+                                <strong>Target Domain:</strong> <span id="target-domain"></span><br>
+                                <strong>Start Time:</strong> <span id="start-time"></span><br>
+                                <strong>End Time:</strong> <span id="end-time"></span><br>
+                                <strong>Status:</strong> <span id="analysis-status" class="status-badge"></span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="card-title">Progress</h5>
+                            <div class="progress mb-2">
+                                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <p class="mb-0"><span id="processed-domains">0</span> of <span id="total-domains">0</span> domains analyzed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="h4 mb-3">Suspicious Domains Found</h2>
+            <div id="domains-container"></div>
+            
+            <div id="no-results" class="alert alert-info" style="display: none;">
+                <i class="fas fa-info-circle me-2"></i>No suspicious domains found for <span id="no-results-domain"></span>.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const analysisId = "{{ analysis_id }}";
+        let refreshInterval;
+        
+        async function fetchAnalysisData() {
+            try {
+                const response = await fetch(`/api/analysis/${analysisId}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.error('Error:', data.error);
+                    return;
+                }
+                
+                // Update UI with analysis data
+                document.getElementById('target-domain').textContent = data.target_domain;
+                document.getElementById('start-time').textContent = data.start_time || 'N/A';
+                document.getElementById('end-time').textContent = data.end_time || 'In progress';
+                
+                // Update progress bar
+                const progressBar = document.getElementById('progress-bar');
+                progressBar.style.width = `${data.progress || 0}%`;
+                progressBar.setAttribute('aria-valuenow', data.progress || 0);
+                progressBar.textContent = `${data.progress || 0}%`;
+                
+                // Update status badge
+                const statusBadge = document.getElementById('analysis-status');
+                statusBadge.textContent = data.status ? data.status.replace('_', ' ').toUpperCase() : 'UNKNOWN';
+                statusBadge.className = 'status-badge ';
+                
+                if (data.status === 'processing' || data.status === 'searching_domains' || data.status === 'analyzing_domains') {
+                    statusBadge.classList.add('status-processing');
+                } else if (data.status === 'completed') {
+                    statusBadge.classList.add('status-completed');
+                } else {
+                    statusBadge.classList.add('status-error');
+                }
+                
+                // Update domain counts
+                if (data.total_domains !== undefined) {
+                    document.getElementById('total-domains').textContent = data.total_domains;
+                }
+                
+                if (data.processed_domains !== undefined) {
+                    document.getElementById('processed-domains').textContent = data.processed_domains;
+                }
+                
+                // Show results if available
+                if (data.results && data.results.length > 0) {
+                    document.getElementById('loading-section').style.display = 'none';
+                    document.getElementById('results-section').style.display = 'block';
+                    
+                    const domainsContainer = document.getElementById('domains-container');
+                    domainsContainer.innerHTML = '';
+                    
+                    data.results.forEach(result => {
+                        const riskClass = `risk-${result.risk_level.toLowerCase()}`;
+                        let riskBadgeClass = 'bg-success';
+                        
+                        if (result.risk_level === 'Medium') riskBadgeClass = 'bg-warning';
+                        if (result.risk_level === 'High') riskBadgeClass = 'bg-danger';
+                        
+                        const domainCard = document.createElement('div');
+                        domainCard.className = `card domain-card ${riskClass}`;
+                        domainCard.innerHTML = `
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title">${result.domain}</h5>
+                                    <span class="badge ${riskBadgeClass}">${result.risk_level} Risk</span>
+                                </div>
+                                <p class="card-text"><strong>Final URL:</strong> <a href="${result.url}" target="_blank">${result.url}</a></p>
+                                ${result.risk_factors && result.risk_factors.length > 0 ? `
+                                    <p class="card-text"><strong>Risk Factors:</strong></p>
+                                    <ul class="mb-0">
+                                        ${result.risk_factors.map(factor => `<li>${factor}</li>`).join('')}
+                                    </ul>
+                                ` : '<p class="card-text mb-0">No specific risk factors identified.</p>'}
+                            </div>
+                        `;
+                        
+                        domainsContainer.appendChild(domainCard);
+                    });
+                } else if (data.status === 'completed') {
+                    // Show no results message
+                    document.getElementById('loading-section').style.display = 'none';
+                    document.getElementById('results-section').style.display = 'block';
+                    document.getElementById('no-results').style.display = 'block';
+                    document.getElementById('no-results-domain').textContent = data.target_domain;
+                }
+                
+                // Stop refreshing if analysis is completed
+                if (data.status === 'completed' || data.status === 'error') {
+                    clearInterval(refreshInterval);
+                }
+            } catch (error) {
+                console.error('Error fetching analysis data:', error);
+            }
+        }
+        
+        // Start fetching data immediately and then every 2 seconds
+        fetchAnalysisData();
+        refreshInterval = setInterval(fetchAnalysisData, 2000);
+    </script>
+</body>
+</html>
