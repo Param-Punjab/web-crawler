@@ -4,3 +4,4 @@ python-whois>=0.8.0
 tldextract>=3.4.0
 scikit-learn>=1.0.0
 dnspython>=2.2.0
+Flask>=2.3.0
