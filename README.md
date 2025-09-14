@@ -19,6 +19,7 @@ This is Web Crawler that identifies and analyzes potential phishing websites tar
 ```bash
 curl -sSL https://raw.githubusercontent.com/param-punjab/web-crawler/main/install.sh | bash
 ```
+---
 
 1. Clone the repository:
 ```bash
