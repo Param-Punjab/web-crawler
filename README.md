@@ -14,6 +14,11 @@ This is Web Crawler that identifies and analyzes potential phishing websites tar
 - **Interactive & Simple Modes**: Both interactive (user input) and predefined target versions available
 
 ## Installation
+### Single command 
+1. Linux/macOS:
+```bash
+curl -sSL https://raw.githubusercontent.com/param-punjab/web-crawler/main/install.sh | bash
+```
 
 1. Clone the repository:
 ```bash
