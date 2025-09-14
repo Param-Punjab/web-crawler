@@ -1,5 +1,4 @@
 #!/bin/bash
-# Web Crawler Installer for Linux/macOS
 set -e
 
 echo "🚀 Installing Web Crawler..."
@@ -9,14 +8,12 @@ git clone https://github.com/param-punjab/web-crawler
 cd web-crawler
 
 echo "Creating virtual environment..."
-# Try Python 3 first, then fall back to Python
 python3 -m venv venv 2>/dev/null || python -m venv venv
 
 echo "Activating virtual environment..."
 source venv/bin/activate
 
 echo "Installing dependencies..."
-# Try pip3 first, then fall back to pip
 pip3 install -r requirements.txt 2>/dev/null || pip install -r requirements.txt
 
 echo "✅ Installation complete!"
@@ -25,5 +22,4 @@ echo "The app will be available at: http://127.0.0.1:5000"
 echo "Press Ctrl+C to stop the server"
 echo ""
 
-# Try flask command first, then fall back to Python module
 flask run 2>/dev/null || python -m flask run 2>/dev/null || python3 -m flask run
