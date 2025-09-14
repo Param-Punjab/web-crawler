@@ -12,7 +12,8 @@ import uuid
 import concurrent.futures
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
-from Levenshtein import distance as lev_distance
+import jellyfish
+lev_distance = jellyfish.levenshtein_distance
 
 app = Flask(__name__)
 app.secret_key = 'secretkey' 
