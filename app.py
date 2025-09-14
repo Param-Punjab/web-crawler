@@ -15,7 +15,7 @@ from urllib.parse import urlparse, urljoin
 from Levenshtein import distance as lev_distance
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here' 
+app.secret_key = 'secretkey' 
 
 analysis_results = {}
 
