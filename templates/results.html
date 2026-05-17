@@ -36,6 +36,23 @@
             border-bottom: 3px solid #4361ee;
             font-weight: 600;
         }
+        .ai-insight-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .ai-insight-card .card-header {
+            background: rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            color: white;
+        }
+        .ai-insight-card pre {
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            white-space: pre-line;
+            margin-bottom: 0;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -91,7 +108,7 @@
                         analysisData = data;
                         displayResults(data);
                     } else {
-                        loadingText.textContent = `Status: ${data.status} (${data.progress}%) - Processed ${data.processed_domains || 0} of ${data.total_domains || 0} domains`;
+                        loadingText.textContent = `Status: ${data.status} (${Math.round(data.progress)}%) - Processed ${data.processed_domains || 0} of ${data.total_domains || 0} domains`;
                         setTimeout(checkProgress, 2000);
                     }
                 })
@@ -102,7 +119,23 @@
         }
         
         function displayResults(data) {
-            let html = `
+            let html = '';
+            
+            // ─── AI INSIGHTS CARD ───
+            if (data.ai_insights) {
+                html += `
+                    <div class="card ai-insight-card mb-4">
+                        <div class="card-header">
+                            <h2 class="h5 mb-0"><i class="fas fa-robot me-2"></i>AI Threat Intelligence (Groq)</h2>
+                        </div>
+                        <div class="card-body">
+                            <pre>${escapeHtml(data.ai_insights)}</pre>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `
                 <div class="card mb-4">
                     <div class="card-header bg-white">
                         <h2 class="h5 mb-1">Target Domain: ${data.target_domain}</h2>
@@ -212,6 +245,12 @@
             });
             
             return cardsHtml;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         exportJson.addEventListener('click', function() {

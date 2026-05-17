@@ -13,7 +13,41 @@ import concurrent.futures
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 import jellyfish
+import os
+from groq import Groq
+from dotenv import load_dotenv
+
 lev_distance = jellyfish.levenshtein_distance
+
+# ─── Load env & Init Groq ───
+load_dotenv()
+groq_client = None
+try:
+    _groq_key = os.environ.get('GROQ_API_KEY')
+    if _groq_key:
+        groq_client = Groq(api_key=_groq_key)
+except Exception:
+    pass
+
+
+load_dotenv()
+
+print("ENV:", os.getenv("GROQ_API_KEY"))
+
+groq_client = None
+
+try:
+    _groq_key = os.getenv("GROQ_API_KEY")
+
+    if not _groq_key:
+        raise ValueError("GROQ_API_KEY not found")
+
+    groq_client = Groq(api_key=_groq_key)
+
+    print("Groq initialized successfully")
+
+except Exception as e:
+    print("ERROR:", e)
 
 app = Flask(__name__)
 app.secret_key = 'secretkey' 
@@ -286,6 +320,55 @@ class PhishingDetector:
         else:
             return "Low"
 
+# ─── AI INSIGHTS GENERATOR ───
+def generate_ai_insights(target_domain, results):
+    """Generate AI-powered threat intelligence using Groq"""
+    if not groq_client:
+        return "⚠️ AI analysis unavailable. Set your GROQ_API_KEY in the .env file to enable AI threat intelligence."
+    
+    high_risk = [r for r in results if r['risk_level'] == 'High']
+    medium_risk = [r for r in results if r['risk_level'] == 'Medium']
+    low_risk = [r for r in results if r['risk_level'] == 'Low']
+    
+    if not results:
+        prompt = (f"No suspicious phishing domains were detected for {target_domain}. "
+                  f"Provide a 1-sentence reassurance and 1 concise security best-practice tip.")
+    else:
+        # Build concise findings (top 6 to stay within token limits)
+        details = []
+        for r in results[:6]:
+            factors = "; ".join(r['risk_factors'][:2])
+            details.append(f"- {r['domain']} ({r['risk_level']}): {factors}")
+        
+        prompt = f"""You are an expert cybersecurity AI analyst. Analyze this phishing detection report.
+
+Target Domain: {target_domain}
+Threat Overview:
+- Total suspicious domains: {len(results)}
+- High risk: {len(high_risk)}
+- Medium risk: {len(medium_risk)}
+- Low risk: {len(low_risk)}
+
+Top Findings:
+{chr(10).join(details)}
+
+Respond with exactly 3 short bullet points:
+1. Overall threat assessment (1 sentence)
+2. Most dangerous pattern observed (1 sentence)
+3. One actionable security recommendation (1 sentence)
+Keep it extremely concise. Use plain text only."""
+
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+            temperature=0.2
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"AI analysis error: {str(e)}"
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -312,7 +395,8 @@ def analyze():
         'start_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'end_time': None,
         'total_domains': 0,
-        'processed_domains': 0
+        'processed_domains': 0,
+        'ai_insights': None
     }
     
     thread = threading.Thread(target=run_analysis, args=(netloc, analysis_id))
@@ -338,6 +422,7 @@ def run_analysis(target_domain, analysis_id):
         analysis_results[analysis_id]['status'] = 'completed'
         analysis_results[analysis_id]['progress'] = 100
         analysis_results[analysis_id]['end_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        analysis_results[analysis_id]['ai_insights'] = generate_ai_insights(target_domain, [])
         return
     
     analysis_results[analysis_id]['status'] = 'analyzing_domains'
@@ -370,10 +455,14 @@ def run_analysis(target_domain, analysis_id):
             except Exception as e:
                 print(f"Error analyzing {domain}: {e}")
     
+    # ─── AI POWERED SUMMARY ───
+    ai_summary = generate_ai_insights(target_domain, results)
+    
     analysis_results[analysis_id]['status'] = 'completed'
     analysis_results[analysis_id]['progress'] = 100
     analysis_results[analysis_id]['results'] = results
     analysis_results[analysis_id]['end_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    analysis_results[analysis_id]['ai_insights'] = ai_summary
 
 @app.route('/results/<analysis_id>')
 def results(analysis_id):
